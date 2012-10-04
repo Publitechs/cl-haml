@@ -36,6 +36,10 @@
                           x))
                    (flatten sexp)))))
 
+(defmacro aif (test-form then-form &optional else-form)
+  `(let ((it ,test-form))
+     (if it ,then-form ,else-form)))
+
 (defun make-haml-fn (stream)
   (multiple-value-bind (doctype body)
       (read-haml stream)
@@ -45,9 +49,12 @@
                `(lambda (,env)
                   (declare (ignorable ,env))
                   (let (,@(mapcar (lambda (arg)
-                                    `(,arg (getf ,env
-                                                 (intern (subseq (string ',arg) 1)
-                                                         :keyword))))
+                                    `(,arg (aif (getf ,env
+                                                 ,(intern (subseq (string arg) 1)
+                                                         :keyword))
+                                                it
+                                                (progn
+                                                  (warn "Variable ~a not found in env" ',arg )))))
                                   args))
                     (with-html-output-to-string (out
                                                  nil
